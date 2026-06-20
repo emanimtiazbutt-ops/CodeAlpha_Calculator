@@ -17,7 +17,7 @@
             background-color: #fce7f3; /* Gentle pastel blush pink */
             background-image: 
                 radial-gradient(at 0% 0%, rgba(244, 63, 94, 0.15) 0, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(217, 70, 239, 0.15) 0, transparent 50__);
+                radial-gradient(at 100% 100%, rgba(217, 70, 239, 0.15) 0, transparent 50%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -168,26 +168,45 @@
             color: #fff;
         }
 
-        /* Mode Switch Button styling */
-        .mode-toggle {
-            grid-column: span 2;
-            font-size: 0.8rem;
+        /* Top Bar Mode Toggles */
+        .mode-toggle, .ledger-toggle {
+            font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 1px;
             background: rgba(251, 207, 232, 0.6);
             color: #be185d;
+            grid-column: span 2;
+            height: 50px;
+            margin-bottom: 4px;
+        }
+        .ledger-toggle {
+            background: rgba(243, 232, 255, 0.7);
+            color: #7e22ce;
         }
 
         /* --- PERSISTENT LOG PANEL --- */
         .ledger-panel {
-            flex: 0.8;
+            width: 220px;
             background: rgba(255, 255, 255, 0.4);
             border-radius: 22px;
             padding: 20px;
             display: flex;
             flex-direction: column;
             border: 1px solid rgba(255, 255, 255, 0.5);
-            min-width: 220px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Toggle out state for history panel */
+        .workspace-deck.ledger-hidden .ledger-panel {
+            width: 0;
+            padding: 0;
+            margin: 0;
+            border: none;
+            opacity: 0;
+            visibility: hidden;
+            gap: 0;
         }
 
         .ledger-panel h3 {
@@ -198,6 +217,7 @@
             margin-bottom: 12px;
             padding-bottom: 8px;
             border-bottom: 1px solid rgba(244, 63, 94, 0.1);
+            white-space: nowrap;
         }
 
         .ledger-records {
@@ -221,7 +241,7 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
             animation: nodeIn 0.3s ease;
         }
-        .log-node div { font-size: 0.8rem; color: #94a3b8; }
+        .log-node div { font-size: 0.8rem; color: #94a3b8; word-break: break-all; }
         .log-node span { font-size: 1rem; color: #475569; font-weight: 600; }
 
         @keyframes nodeIn {
@@ -229,11 +249,12 @@
             to { opacity: 1; transform: translateX(0); }
         }
 
-        @media (max-width: 680px) {
+        @media (max-width: 740px) {
             .workspace-deck { flex-direction: column; }
             .calc-core { max-width: 100%; }
-            .scientific-panel { width: 100% !important; grid-template-columns: repeat(5, 1fr); padding: 0 !important; border: none !important; margin-bottom: 12px; display: none; }
+            .scientific-panel { width: 100% !important; grid-template-columns: repeat(4, 1fr); padding: 0 !important; border: none !important; margin-bottom: 12px; display: none; }
             .workspace-deck.sci-active .scientific-panel { display: grid; }
+            .ledger-panel { width: 100%; max-height: 200px; }
         }
     </style>
 </head>
@@ -249,8 +270,8 @@
             <button class="sci" onclick="execSci('sqrt')">√</button>
             <button class="sci" onclick="execSci('pow')">x²</button>
             <button class="sci" onclick="appendToken('Math.PI')">π</button>
-            <button class="sci" onclick="appendToken('Math.E')">e</button>
             <button class="sci" onclick="appendToken('(')">(</button>
+            <button class="sci" onclick="appendToken(')')">)</button>
         </div>
 
         <div class="calc-core">
@@ -262,41 +283,44 @@
 
             <div class="matrix-grid">
                 <button class="mode-toggle" onclick="toggleScientificMode()">Sci-Mode</button>
+                <button class="ledger-toggle" onclick="toggleLedgerPanel()">View History</button>
+                
                 <button class="action" onclick="clearAll()">C</button>
                 <button class="action" onclick="popStack()">⌫</button>
+                <button class="op" onclick="appendValue('%')">%</button>
+                <button class="op" onclick="appendValue('/')">÷</button>
 
                 <button class="num" onclick="appendValue('7')">7</button>
                 <button class="num" onclick="appendValue('8')">8</button>
                 <button class="num" onclick="appendValue('9')">9</button>
-                <button class="op" onclick="appendValue('/')">÷</button>
+                <button class="op" onclick="appendValue('*')">×</button>
 
                 <button class="num" onclick="appendValue('4')">4</button>
                 <button class="num" onclick="appendValue('5')">5</button>
                 <button class="num" onclick="appendValue('6')">6</button>
-                <button class="op" onclick="appendValue('*')">×</button>
+                <button class="op" onclick="appendValue('-')">−</button>
 
                 <button class="num" onclick="appendValue('1')">1</button>
                 <button class="num" onclick="appendValue('2')">2</button>
                 <button class="num" onclick="appendValue('3')">3</button>
-                <button class="op" onclick="appendValue('-')">−</button>
+                <button class="op" onclick="appendValue('+')">+</button>
 
                 <button class="num" onclick="appendValue('0')">0</button>
                 <button class="num" onclick="appendDecimal('.')">.</button>
-                <button class="op" onclick="appendValue('+')">+</button>
-                <button class="eval" onclick="evaluateMatrix()">=</button>
+                <button class="eval" style="grid-column: span 2;" onclick="evaluateMatrix()">=</button>
             </div>
         </div>
 
-        <div class="ledger-panel">
+        <div class="ledger-panel" id="ledgerBox">
             <h3>Memory Ledger</h3>
             <div class="ledger-records" id="ledgerRecords"></div>
         </div>
     </div>
 
     <script>
-        // --- DATA ARCHITECTURE STATE ---
         let currentSequence = '0';
         let isSciActive = false;
+        let isLedgerVisible = true;
         let evaluationState = false;
 
         const outputView = document.getElementById('outputView');
@@ -305,7 +329,7 @@
         const deck = document.getElementById('deck');
         const engineModeText = document.getElementById('engineModeText');
 
-        // Elegant chime audio context node
+        // Elegant chime audio tone synthesis
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playHapticTick() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -314,7 +338,7 @@
             osc.connect(gainNode);
             gainNode.connect(audioCtx.destination);
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(880, audioCtx.currentTime); // Sweet, high pastel chime tone
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime); 
             gainNode.gain.setValueAtTime(0.015, audioCtx.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.05);
             osc.start();
@@ -329,6 +353,11 @@
             isSciActive = !isSciActive;
             deck.classList.toggle('sci-active', isSciActive);
             engineModeText.textContent = isSciActive ? "Extended Engineering" : "Standard Mode";
+        }
+
+        function toggleLedgerPanel() {
+            isLedgerVisible = !isLedgerVisible;
+            deck.classList.toggle('ledger-hidden', !isLedgerVisible);
         }
 
         function clearAll() {
@@ -370,7 +399,7 @@
 
         function appendDecimal(dot) {
             if (evaluationState) { currentSequence = '0.'; evaluationState = false; outputView.textContent = currentSequence; return; }
-            const expressions = currentSequence.split(/[\+\-\*\/]/);
+            const expressions = currentSequence.split(/[\+\-\*\/%]/);
             const activeExpression = expressions[expressions.length - 1];
             if (!activeExpression.includes(dot)) currentSequence += dot;
             outputView.textContent = currentSequence;
@@ -394,14 +423,16 @@
         function evaluateMatrix() {
             try {
                 let sanitizedInput = currentSequence;
-                historyView.textContent = sanitizedInput + ' =';
                 
+                // Automatically append missing closing brackets safely 🌸
                 let openBrackets = (sanitizedInput.match(/\(/g) || []).length;
                 let closeBrackets = (sanitizedInput.match(/\)/g) || []).length;
                 while(openBrackets > closeBrackets) {
                     sanitizedInput += ')';
                     closeBrackets++;
                 }
+
+                historyView.textContent = sanitizedInput + ' =';
 
                 let finalResult = Function("\"use strict\"; return (" + sanitizedInput + ")")();
                 
@@ -430,7 +461,8 @@
         document.addEventListener('keydown', (e) => {
             if (e.key >= '0' && e.key <= '9') appendValue(e.key);
             if (e.key === '.') appendDecimal('.');
-            if (e.key === '+' || e.key === '-' || e.key === '*' || e.key === '/') appendValue(e.key);
+            if (e.key === '(' || e.key === ')') appendToken(e.key);
+            if (e.key === '+' || e.key === '-' || e.key === '*' || e.key === '/' || e.key === '%') appendValue(e.key);
             if (e.key === 'Enter' || e.key === '=') { e.preventDefault(); evaluateMatrix(); }
             if (e.key === 'Backspace') popStack();
             if (e.key === 'Escape') clearAll();
