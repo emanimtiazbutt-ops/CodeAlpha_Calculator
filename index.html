@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chic Studio Dashboard Calculator</title>
+    <style>
+        /* --- BRAND DESIGN ARCHITECTURE --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: #fce7f3; /* Gentle pastel blush pink */
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(244, 63, 94, 0.15) 0, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(217, 70, 239, 0.15) 0, transparent 50__);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* --- THE CORE DASHBOARD MODULE --- */
+        .workspace-deck {
+            display: flex;
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 30px;
+            padding: 24px;
+            gap: 24px;
+            box-shadow: 0 25px 50px -12px rgba(219, 39, 119, 0.15);
+            max-width: 820px;
+            width: 100%;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .calc-core {
+            flex: 1.2;
+            max-width: 400px;
+        }
+
+        /* --- DISPLAY ARCHITECTURE --- */
+        .display-unit {
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(244, 63, 94, 0.1);
+            border-radius: 22px;
+            padding: 24px;
+            margin-bottom: 20px;
+            text-align: right;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            position: relative;
+            box-shadow: inset 0 2px 10px rgba(219, 39, 119, 0.05);
+        }
+
+        .engine-indicator {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #db2777; /* Deep matte pink */
+            font-weight: 700;
+            opacity: 0.7;
+        }
+
+        .history-view {
+            font-size: 1rem;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .output-view {
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: #475569;
+            white-space: nowrap;
+            overflow-x: auto;
+        }
+        .output-view::-webkit-scrollbar { display: none; }
+
+        /* --- BUTTON MATRIX ENGINE --- */
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .scientific-panel {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            width: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+            border-right: 0px solid transparent;
+        }
+
+        /* Mode Activation Rules */
+        .workspace-deck.sci-active .scientific-panel {
+            width: 190px;
+            opacity: 1;
+            border-right: 1px solid rgba(244, 63, 94, 0.1);
+            padding-right: 12px;
+        }
+
+        button {
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            outline: none;
+            background: rgba(255, 255, 255, 0.6);
+            color: #db2777;
+            font-size: 1.2rem;
+            font-weight: 600;
+            height: 62px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        button:hover {
+            background: #fff;
+            color: #be185d;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(219, 39, 119, 0.15);
+        }
+
+        button:active { transform: translateY(1px); }
+
+        /* Color Coding Hierarchy */
+        button.num { color: #475569; background: #ffffff; }
+        button.num:hover { color: #0f172a; }
+
+        button.sci { font-size: 0.95rem; color: #9333ea; background: rgba(243, 232, 255, 0.8); }
+        button.sci:hover { background: #f3e8ff; color: #7e22ce; }
+
+        button.op { color: #db2777; background: rgba(252, 231, 243, 0.9); border-color: rgba(244, 63, 94, 0.15); }
+        button.op:hover { background: #db2777; color: #ffffff; }
+
+        button.action { color: #ea580c; background: rgba(255, 237, 213, 0.6); }
+        button.action:hover { background: #ffedd5; }
+
+        button.eval {
+            background: linear-gradient(135deg, #f43f5e, #d946ef);
+            color: #fff;
+            border: none;
+        }
+        button.eval:hover {
+            box-shadow: 0 8px 20px rgba(244, 63, 94, 0.3);
+            transform: translateY(-2px) scale(1.01);
+            color: #fff;
+        }
+
+        /* Mode Switch Button styling */
+        .mode-toggle {
+            grid-column: span 2;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: rgba(251, 207, 232, 0.6);
+            color: #be185d;
+        }
+
+        /* --- PERSISTENT LOG PANEL --- */
+        .ledger-panel {
+            flex: 0.8;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 22px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            min-width: 220px;
+        }
+
+        .ledger-panel h3 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #be185d;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(244, 63, 94, 0.1);
+        }
+
+        .ledger-records {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 330px;
+            padding-right: 4px;
+        }
+        .ledger-records::-webkit-scrollbar { width: 4px; }
+        .ledger-records::-webkit-scrollbar-thumb { background: #fbcfe8; border-radius: 10px; }
+
+        .log-node {
+            text-align: right;
+            background: rgba(255, 255, 255, 0.5);
+            padding: 8px 12px;
+            border-radius: 10px;
+            border-right: 3px solid #d946ef;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            animation: nodeIn 0.3s ease;
+        }
+        .log-node div { font-size: 0.8rem; color: #94a3b8; }
+        .log-node span { font-size: 1rem; color: #475569; font-weight: 600; }
+
+        @keyframes nodeIn {
+            from { opacity: 0; transform: translateX(10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @media (max-width: 680px) {
+            .workspace-deck { flex-direction: column; }
+            .calc-core { max-width: 100%; }
+            .scientific-panel { width: 100% !important; grid-template-columns: repeat(5, 1fr); padding: 0 !important; border: none !important; margin-bottom: 12px; display: none; }
+            .workspace-deck.sci-active .scientific-panel { display: grid; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="workspace-deck" id="deck">
+        <div class="scientific-panel">
+            <button class="sci" onclick="execSci('sin')">sin</button>
+            <button class="sci" onclick="execSci('cos')">cos</button>
+            <button class="sci" onclick="execSci('tan')">tan</button>
+            <button class="sci" onclick="execSci('log')">log</button>
+            <button class="sci" onclick="execSci('ln')">ln</button>
+            <button class="sci" onclick="execSci('sqrt')">√</button>
+            <button class="sci" onclick="execSci('pow')">x²</button>
+            <button class="sci" onclick="appendToken('Math.PI')">π</button>
+            <button class="sci" onclick="appendToken('Math.E')">e</button>
+            <button class="sci" onclick="appendToken('(')">(</button>
+        </div>
+
+        <div class="calc-core">
+            <div class="display-unit">
+                <span class="engine-indicator" id="engineModeText">Standard Mode</span>
+                <div class="history-view" id="historyView"></div>
+                <div class="output-view" id="outputView">0</div>
+            </div>
+
+            <div class="matrix-grid">
+                <button class="mode-toggle" onclick="toggleScientificMode()">Sci-Mode</button>
+                <button class="action" onclick="clearAll()">C</button>
+                <button class="action" onclick="popStack()">⌫</button>
+
+                <button class="num" onclick="appendValue('7')">7</button>
+                <button class="num" onclick="appendValue('8')">8</button>
+                <button class="num" onclick="appendValue('9')">9</button>
+                <button class="op" onclick="appendValue('/')">÷</button>
+
+                <button class="num" onclick="appendValue('4')">4</button>
+                <button class="num" onclick="appendValue('5')">5</button>
+                <button class="num" onclick="appendValue('6')">6</button>
+                <button class="op" onclick="appendValue('*')">×</button>
+
+                <button class="num" onclick="appendValue('1')">1</button>
+                <button class="num" onclick="appendValue('2')">2</button>
+                <button class="num" onclick="appendValue('3')">3</button>
+                <button class="op" onclick="appendValue('-')">−</button>
+
+                <button class="num" onclick="appendValue('0')">0</button>
+                <button class="num" onclick="appendDecimal('.')">.</button>
+                <button class="op" onclick="appendValue('+')">+</button>
+                <button class="eval" onclick="evaluateMatrix()">=</button>
+            </div>
+        </div>
+
+        <div class="ledger-panel">
+            <h3>Memory Ledger</h3>
+            <div class="ledger-records" id="ledgerRecords"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA ARCHITECTURE STATE ---
+        let currentSequence = '0';
+        let isSciActive = false;
+        let evaluationState = false;
+
+        const outputView = document.getElementById('outputView');
+        const historyView = document.getElementById('historyView');
+        const ledgerRecords = document.getElementById('ledgerRecords');
+        const deck = document.getElementById('deck');
+        const engineModeText = document.getElementById('engineModeText');
+
+        // Elegant chime audio context node
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playHapticTick() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime); // Sweet, high pastel chime tone
+            gainNode.gain.setValueAtTime(0.015, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.05);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.05);
+        }
+
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', playHapticTick);
+        });
+
+        function toggleScientificMode() {
+            isSciActive = !isSciActive;
+            deck.classList.toggle('sci-active', isSciActive);
+            engineModeText.textContent = isSciActive ? "Extended Engineering" : "Standard Mode";
+        }
+
+        function clearAll() {
+            currentSequence = '0';
+            historyView.textContent = '';
+            outputView.textContent = '0';
+            evaluationState = false;
+        }
+
+        function popStack() {
+            if(evaluationState) { clearAll(); return;}
+            if (currentSequence.length > 1) {
+                currentSequence = currentSequence.trim().slice(0, -1);
+            } else {
+                currentSequence = '0';
+            }
+            outputView.textContent = currentSequence;
+        }
+
+        function appendValue(token) {
+            if (currentSequence === '0' || evaluationState) {
+                currentSequence = token;
+                evaluationState = false;
+            } else {
+                currentSequence += token;
+            }
+            outputView.textContent = currentSequence;
+        }
+
+        function appendToken(jsToken) {
+            if(currentSequence === '0' || evaluationState) {
+                currentSequence = jsToken;
+                evaluationState = false;
+            } else {
+                currentSequence += jsToken;
+            }
+            outputView.textContent = currentSequence;
+        }
+
+        function appendDecimal(dot) {
+            if (evaluationState) { currentSequence = '0.'; evaluationState = false; outputView.textContent = currentSequence; return; }
+            const expressions = currentSequence.split(/[\+\-\*\/]/);
+            const activeExpression = expressions[expressions.length - 1];
+            if (!activeExpression.includes(dot)) currentSequence += dot;
+            outputView.textContent = currentSequence;
+        }
+
+        function execSci(mathFn) {
+            evaluationState = false;
+            if(currentSequence === '0') currentSequence = '';
+            
+            if(mathFn === 'sin') currentSequence += 'Math.sin(';
+            if(mathFn === 'cos') currentSequence += 'Math.cos(';
+            if(mathFn === 'tan') currentSequence += 'Math.tan(';
+            if(mathFn === 'log') currentSequence += 'Math.log10(';
+            if(mathFn === 'ln') currentSequence += 'Math.log(';
+            if(mathFn === 'sqrt') currentSequence += 'Math.sqrt(';
+            if(mathFn === 'pow') currentSequence += '**2';
+            
+            outputView.textContent = currentSequence;
+        }
+
+        function evaluateMatrix() {
+            try {
+                let sanitizedInput = currentSequence;
+                historyView.textContent = sanitizedInput + ' =';
+                
+                let openBrackets = (sanitizedInput.match(/\(/g) || []).length;
+                let closeBrackets = (sanitizedInput.match(/\)/g) || []).length;
+                while(openBrackets > closeBrackets) {
+                    sanitizedInput += ')';
+                    closeBrackets++;
+                }
+
+                let finalResult = Function("\"use strict\"; return (" + sanitizedInput + ")")();
+                
+                if(finalResult === Infinity || isNaN(finalResult)) {
+                    outputView.textContent = 'Error';
+                } else {
+                    let scalarCalculated = Number(Math.round(finalResult + 'e10') + 'e-10').toString();
+                    outputView.textContent = scalarCalculated;
+                    
+                    pushLedgerNode(currentSequence, scalarCalculated);
+                    currentSequence = scalarCalculated;
+                }
+            } catch(e) {
+                outputView.textContent = 'Syntax Error';
+            }
+            evaluationState = true;
+        }
+
+        function pushLedgerNode(equation, result) {
+            const node = document.createElement('div');
+            node.className = 'log-node';
+            node.innerHTML = "<div>" + equation + "</div><span>" + result + "</span>";
+            ledgerRecords.insertBefore(node, ledgerRecords.firstChild);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9') appendValue(e.key);
+            if (e.key === '.') appendDecimal('.');
+            if (e.key === '+' || e.key === '-' || e.key === '*' || e.key === '/') appendValue(e.key);
+            if (e.key === 'Enter' || e.key === '=') { e.preventDefault(); evaluateMatrix(); }
+            if (e.key === 'Backspace') popStack();
+            if (e.key === 'Escape') clearAll();
+        });
+    </script>
+</body>
+</html>
